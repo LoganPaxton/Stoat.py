@@ -1,5 +1,5 @@
 import ulid
-from typing import Union, List
+from typing import List
 from datetime import datetime
 
 class Channel:
@@ -56,6 +56,48 @@ class Channel:
         """Delete the channel or leave the group"""
         params = {"leave_silently": leave_silently}
         await self.client.http.delete(f"/channels/{self.id}", params=params)
+        
+    async def pin_message(self, message_id: int):
+        """Pin a message"""
+        params = {}
+        await self.client.http.post(f"channels/{self.id}/messages/{message_id}/pin", params=params)
+    
+    async def unpin_message(self, message_id: int):
+        """Unpin a message"""
+        params = {}
+        await self.client.http.delete(f"channels/{self.id}/messages/{message_id}/pin", params=params)
+        
+    async def fetch_webhooks(self):
+        """Get all webhooks for a channel"""
+        params = {}
+        webhooks = await self.client.http.get(f"/channels/{self.id}/webhooks", params=params)
+        return webhooks.json()
+    
+    async def add_reaction(self, message_id: str, emoji: str):
+        """Add a reaction to a message"""
+        params = {}
+        await self.client.http.put(f"/channels/{self.id}/messages/{message_id}/reactions/{emoji}", params=params)
+
+    async def remove_reaction(self, message_id: str, emoji: str):
+        """Remove a reaction to a message"""
+        params = {}
+        await self.client.http.delete(f"/channels/{self.id}/messages/{message_id}/reactions/{emoji}", params=params)
+        
+    async def clear_reactions(self, message_id: str):
+        """Remove all reaction from a message"""
+        params = {}
+        await self.client.http.delete(f"/channels/{self.id}/messages/{message_id}/reactions", params=params)
+        
+    async def delete_message(self, message_id: str):
+        """Delete a message"""
+        params = {}
+        await self.client.http.delete(f"/channels/{self.id}/messages/{message_id}", params=params)
+        
+    async def edit_message(self, message_id: str, content: str):
+        """Edit a previously sent message"""
+        params = {"content": content}
+        res = await self.client.http.patch(f"/channels/{self.id}/messages/{message_id}", json=params)
+        return res.json()
 
     def __repr__(self):
         return f"<Channel name={self.name} id={self.id} type={self.type}>"
