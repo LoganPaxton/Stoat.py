@@ -1,6 +1,7 @@
 import ulid
 from typing import List
 from datetime import datetime
+from .Message import Message
 
 class Channel:
     def __init__(self, client, data: dict):
@@ -9,6 +10,7 @@ class Channel:
         self.name = data.get("name")
         self.type = data.get("channel_type")
         self.server_id = data.get("server")
+        self.last_message_id = data.get("last_message_id")
         self._raw_data = data
         self.ULID = ulid.ULID()
 
@@ -29,11 +31,13 @@ class Channel:
         )
         return response.json()
 
-    async def send_message(self, content: str, silent: bool = False) -> dict:
-        """
-        Send a message to this channel.
-        Replicates the @silent and Idempotency logic from JS.
-        """
+    async def fetch_webhooks(self) -> List[dict]:
+        """Get all webhooks for this channel"""
+        response = await self.client.http.get(f"/channels/{self.id}/webhooks")
+        return response.json()
+
+    async def send_message(self, content: str, silent: bool = False) -> Message:
+        """Send a message to a channel"""
         payload = {"content": content}
         
         if silent or content.startswith("@silent "):
@@ -50,54 +54,27 @@ class Channel:
             json=payload,
             headers=headers
         )
-        return response.json()
+        
+        return Message(self.client, response.json())
+
+    async def fetch_message(self, message_id: str) -> Message:
+        """Fetch a specific message by its ID"""
+        response = await self.client.http.get(f"/channels/{self.id}/messages/{message_id}")
+        return Message(self.client, response.json())
 
     async def delete(self, leave_silently: bool = False):
         """Delete the channel or leave the group"""
-        params = {"leave_silently": leave_silently}
+        params = {"leave_silently": str(leave_silently).lower()}
         await self.client.http.delete(f"/channels/{self.id}", params=params)
-        
-    async def pin_message(self, message_id: int):
-        """Pin a message"""
-        params = {}
-        await self.client.http.post(f"channels/{self.id}/messages/{message_id}/pin", params=params)
-    
-    async def unpin_message(self, message_id: int):
-        """Unpin a message"""
-        params = {}
-        await self.client.http.delete(f"channels/{self.id}/messages/{message_id}/pin", params=params)
-        
-    async def fetch_webhooks(self):
-        """Get all webhooks for a channel"""
-        params = {}
-        webhooks = await self.client.http.get(f"/channels/{self.id}/webhooks", params=params)
-        return webhooks.json()
-    
-    async def add_reaction(self, message_id: str, emoji: str):
-        """Add a reaction to a message"""
-        params = {}
-        await self.client.http.put(f"/channels/{self.id}/messages/{message_id}/reactions/{emoji}", params=params)
 
-    async def remove_reaction(self, message_id: str, emoji: str):
-        """Remove a reaction to a message"""
-        params = {}
-        await self.client.http.delete(f"/channels/{self.id}/messages/{message_id}/reactions/{emoji}", params=params)
-        
-    async def clear_reactions(self, message_id: str):
-        """Remove all reaction from a message"""
-        params = {}
-        await self.client.http.delete(f"/channels/{self.id}/messages/{message_id}/reactions", params=params)
-        
-    async def delete_message(self, message_id: str):
-        """Delete a message"""
-        params = {}
-        await self.client.http.delete(f"/channels/{self.id}/messages/{message_id}", params=params)
-        
-    async def edit_message(self, message_id: str, content: str):
-        """Edit a previously sent message"""
-        params = {"content": content}
-        res = await self.client.http.patch(f"/channels/{self.id}/messages/{message_id}", json=params)
-        return res.json()
+    async def set_permissions(self, role_id: str = "default", permissions: int = 0):
+        """Set role permissions for this channel"""
+        payload = {"permissions": permissions}
+        response = await self.client.http.put(
+            f"/channels/{self.id}/permissions/{role_id}", 
+            json=payload
+        )
+        return response.json()
 
     def __repr__(self):
-        return f"<Channel name={self.name} id={self.id} type={self.type}>"
+        return f"<Channel name='{self.name}' id='{self.id}' type='{self.type}'>"
