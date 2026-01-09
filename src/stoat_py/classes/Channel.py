@@ -75,6 +75,22 @@ class Channel:
             json=payload
         )
         return response.json()
+    
+    async def edit_channel(self, name=None):
+        if name is None:
+            name = self.name
+        
+        payload = {
+            "name": name
+        }
+        await self.client.http.patch(f"/channels/{self.id}", json=payload)
+    
+    async def add_recipient(self, user_id: str):
+        await self.client.http.put(f"/channels/{self.id}/recipients/{user_id}")
+        
+    async def remove_recipient(self, user_id: str):
+        await self.client.http.delete(f"/channels/{self.id}/recipients/{user_id}")
+        
 
     def __repr__(self):
         return f"<Channel name='{self.name}' id='{self.id}' type='{self.type}'>"

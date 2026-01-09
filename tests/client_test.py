@@ -24,10 +24,16 @@ async def on_message(msg: Message):
     if not content.startswith(PREFIX):
         return
     
-    print(stripped)
     if stripped == "ping":
         channel = Channel(client, {"_id": msg.channel_id})
         await channel.send_message("Pong!")
+    elif stripped == "delete":
+        channel = Channel(client, {"_id": "01KEG7SZF0F956F116FXKPFS2M"})
+        await channel.delete()
+    elif stripped == "edit":
+        channel = Channel(client, {"_id": "01KE7FGF0ENHN49SQVPN3WVGVK"})
+        channel.edit_channel("Main")
+        
     
 
 asyncio.run(client.start(TOKEN))
